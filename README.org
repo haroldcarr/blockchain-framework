@@ -1,0 +1,9 @@
+Initially from https://medium.com/@lhartikk/a-blockchain-in-200-lines-of-code-963cc1cc0e54#.ufqde5iq6
+
+#+begin_example
+./start.sh
+curl -s http://127.0.0.1:9160/blocks/0 | jq -M .
+curl -s http://127.0.0.1:9160/addBlock/FAKE_BLOCK_DATA | jq -M .
+# TODO : actually add the block
+curl -s http://127.0.0.1:9160/blocks/1 | jq -M .
+#+end_example

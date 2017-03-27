@@ -1,0 +1,59 @@
+name:                blockchain-framework
+version:             0.1.0.0
+build-type:          Simple
+cabal-version:       >=1.10
+
+library
+  hs-source-dirs:      src
+  exposed-modules:     Blockchain
+                     , BlockchainState
+                     , CommandDispatcher
+                     , Consensus
+                     , Http
+                     , Logging
+                     , TransportUDP
+  build-depends:       base >= 4.7 && < 5
+                     , aeson
+                     , base64-bytestring
+                     , bytestring
+                     , cryptohash
+                     , hslogger
+                     , lens
+                     , mtl
+                     , network
+                     , network-multicast
+                     , snap-core
+                     , snap-server
+                     , text
+  default-language:    Haskell2010
+  ghc-options:         -Wall -Wno-unused-do-bind
+
+executable bc
+  hs-source-dirs:      app
+  main-is:             Main.hs
+  ghc-options:         -Wall -Wno-unused-do-bind -threaded -rtsopts -with-rtsopts=-N
+  build-depends:       base
+                     , aeson
+                     , bytestring
+                     , hslogger
+                     , blockchain-framework
+                     , lens
+                     , network
+  default-language:    Haskell2010
+
+test-suite blockchain-framework-test
+  type:                exitcode-stdio-1.0
+  hs-source-dirs:      test
+  main-is:             Spec.hs
+  other-modules:       BlockchainSpec
+                     , CommunicationSpec
+  build-depends:       base
+                     , aeson
+                     , blockchain-framework
+                     , hspec
+  ghc-options:         -Wall -Wno-unused-do-bind -threaded -rtsopts -with-rtsopts=-N
+  default-language:    Haskell2010
+
+source-repository head
+  type:     git
+  location: https://github.com/githubuser/blockchain-framework
