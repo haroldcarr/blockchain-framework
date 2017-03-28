@@ -2,13 +2,14 @@
 
 module Main where
 
-import           Blockchain           as BC (Block, BlockData, Blockchain,
-                                             addBlock, generateNextBlock,
-                                             genesisBlock, isValidChain)
-import           BlockchainState      (initialBlockchainState)
 import           CommandDispatcher
 import           Consensus
 import           Http                 (commandReceiver)
+import           LedgerImpl           as BC (BlockData, Ledger, LedgerEntry,
+                                             addLedgerEntry,
+                                             generateNextLedgerEntry,
+                                             genesisLedgerEntry, isValidLedger)
+import           LedgerImplState      (initialLedgerImplState)
 import           Logging              (configureLogging)
 import           TransportUDP         (startNodeComm)
 
@@ -42,15 +43,15 @@ doIt httpPort host port = do
 
 initializeCommandDispatcher :: IO CommandDispatcher
 initializeCommandDispatcher = do
-  blockchainState <- initialBlockchainState
+  ledgerState <- initialLedgerImplState
   mv <- newEmptyMVar
   return (CommandDispatcher
           Consensus.handleConsensusMessage
           (getMsgsToSendToConsensusNodes mv)
           (sendToConsensusNodes mv)
-          (Main.listBlocks blockchainState)
+          (Main.listBlocks ledgerState)
           (Main.addBlock mv)
-          (Main.isValid blockchainState))
+          (Main.isValid ledgerState))
 
 getMsgsToSendToConsensusNodes :: MVar BlockData -> IO BlockData
 getMsgsToSendToConsensusNodes  = takeMVar
@@ -58,25 +59,25 @@ getMsgsToSendToConsensusNodes  = takeMVar
 sendToConsensusNodes :: MVar BlockData -> BlockData -> IO ()
 sendToConsensusNodes  = putMVar
 
-listBlocks :: MVar Blockchain -> Maybe Int -> IO (Maybe Blockchain)
-listBlocks blockchain i =
+listBlocks :: MVar Ledger -> Maybe Int -> IO (Maybe Ledger)
+listBlocks ledger i =
   case i of
     -- return all entries
-    Nothing -> withMVar blockchain $ return . Just
+    Nothing -> withMVar ledger $ return . Just
     -- return the single entry (as a one-element list)
-    Just i' -> withMVar blockchain $ \bc -> case bc ^? element i' of
-                                              Nothing -> return Nothing
-                                              Just el -> return (Just [el])
+    Just i' -> withMVar ledger $ \bc -> case bc ^? element i' of
+                                          Nothing -> return Nothing
+                                          Just el -> return (Just [el])
 
-addBlock :: MVar BlockData -> BlockData -> IO Block
+addBlock :: MVar BlockData -> BlockData -> IO LedgerEntry
 addBlock sendToConsensusNodesMV blockdata = do
-  let newBlock = generateNextBlock genesisBlock "fake timestamp" blockdata
+  let newLedgerEntry = generateNextLedgerEntry genesisLedgerEntry "fake timestamp" blockdata
   -- send block to verifiers
-  putMVar sendToConsensusNodesMV (toStrict (encode (AppendEntry newBlock)))
+  putMVar sendToConsensusNodesMV (toStrict (encode (AppendEntry newLedgerEntry)))
   -- return block to caller
-  return newBlock
+  return newLedgerEntry
 
-isValid :: MVar Blockchain -> Block -> IO (Maybe String)
-isValid blockchain blk =
-  withMVar blockchain $ \bc -> return $ isValidChain (BC.addBlock blk bc)
+isValid :: MVar Ledger -> LedgerEntry -> IO (Maybe String)
+isValid ledger ledgerEntry =
+  withMVar ledger $ \l -> return $ isValidLedger (BC.addLedgerEntry ledgerEntry l)
 

@@ -5,11 +5,12 @@ cabal-version:       >=1.10
 
 library
   hs-source-dirs:      src
-  exposed-modules:     Blockchain
-                     , BlockchainState
-                     , CommandDispatcher
+  exposed-modules:     CommandDispatcher
                      , Consensus
                      , Http
+                     , Ledger
+                     , LedgerImpl
+                     , LedgerImplState
                      , Logging
                      , TransportUDP
   build-depends:       base >= 4.7 && < 5

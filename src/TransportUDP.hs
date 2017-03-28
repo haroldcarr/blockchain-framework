@@ -4,8 +4,8 @@ module TransportUDP
   (startNodeComm)
 where
 
-import           Blockchain                (Block, BlockData)
 import           CommandDispatcher
+import           LedgerImpl                (BlockData, LedgerEntry)
 import           Logging                   (consensusFollower)
 
 import           Control.Concurrent        (forkIO)
@@ -30,7 +30,7 @@ startNodeComm (CommandDispatcher handleConsensusMessage getMsgsToSendToConsensus
 rec :: HostName -> PortNumber -> Socket -> Socket -> SockAddr
     -> HandleConsensusMessage
     -> (BlockData -> IO ())
-    -> (Block -> IO (Maybe String))
+    -> (LedgerEntry -> IO (Maybe String))
     -> IO ()
 rec host port recSock sendSock sendAddr handleConsensusMessage sendToConsensusNodes isValid = do
   infoN host port "rec: waiting"

@@ -11,7 +11,7 @@ module Consensus
   )
 where
 
-import           Blockchain           (Block, BlockData)
+import           LedgerImpl           (BlockData, LedgerEntry)
 import           Logging
 
 import           Data.Aeson           (FromJSON, ToJSON, decodeStrict, encode)
@@ -23,13 +23,13 @@ import           Network.Socket       as N (HostName, PortNumber)
 import           System.Log.Logger    (infoM)
 
 data AppendEntry =
-  AppendEntry { appendEntry :: Block
+  AppendEntry { appendEntry :: LedgerEntry
               }
   deriving (Eq, Generic, Show)
 
 data AppendEntryResponse =
   AppendEntryResponse { appendEntryResponse :: Bool
-                      , block               :: Maybe Block
+                      , block               :: Maybe LedgerEntry
                       }
   deriving (Eq, Generic, Show)
 
@@ -40,7 +40,7 @@ type ConsensusMessage = ByteString
 type HandleConsensusMessage = HostName
                            -> PortNumber
                            -> (BlockData -> IO ())
-                           -> (Block -> IO (Maybe String))
+                           -> (LedgerEntry -> IO (Maybe String))
                            -> ConsensusMessage
                            -> IO ()
 
