@@ -5,7 +5,8 @@ module TransportUDP
 where
 
 import           CommandDispatcher
-import           LedgerImpl                (BlockData, LedgerEntry)
+import           LedgerImpl                (EData)
+import           LedgerImpl                (LedgerEntry)
 import           Logging                   (consensusFollower)
 
 import           Control.Concurrent        (forkIO)
@@ -29,7 +30,7 @@ startNodeComm (CommandDispatcher handleConsensusMessage getMsgsToSendToConsensus
 
 rec :: HostName -> PortNumber -> Socket -> Socket -> SockAddr
     -> HandleConsensusMessage
-    -> (BlockData -> IO ())
+    -> (EData -> IO ())
     -> (LedgerEntry -> IO (Maybe String))
     -> IO ()
 rec host port recSock sendSock sendAddr handleConsensusMessage sendToConsensusNodes isValid = do
@@ -40,7 +41,7 @@ rec host port recSock sendSock sendAddr handleConsensusMessage sendToConsensusNo
   rec host port recSock sendSock sendAddr handleConsensusMessage sendToConsensusNodes isValid
 
 -- Read from sendToConsensusNodes and broadcast
-send :: HostName -> PortNumber -> Socket -> SockAddr -> IO BlockData -> IO () -- TODO ByteString
+send :: HostName -> PortNumber -> Socket -> SockAddr -> IO EData -> IO () -- TODO ByteString
 send host port sock addr getMsgsToSendToConsensusNodes = do
   infoN host port "send: waiting"
   msg <- getMsgsToSendToConsensusNodes

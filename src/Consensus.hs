@@ -11,7 +11,8 @@ module Consensus
   )
 where
 
-import           LedgerImpl           (BlockData, LedgerEntry)
+import           Ledger               (EData)
+import           LedgerImpl           (LedgerEntry)
 import           Logging
 
 import           Data.Aeson           (FromJSON, ToJSON, decodeStrict, encode)
@@ -39,7 +40,7 @@ type ConsensusMessage = ByteString
 
 type HandleConsensusMessage = HostName
                            -> PortNumber
-                           -> (BlockData -> IO ())
+                           -> (EData -> IO ())
                            -> (LedgerEntry -> IO (Maybe String))
                            -> ConsensusMessage
                            -> IO ()

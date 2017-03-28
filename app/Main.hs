@@ -5,10 +5,10 @@ module Main where
 import           CommandDispatcher
 import           Consensus
 import           Http                 (commandReceiver)
-import           LedgerImpl           as BC (BlockData, Ledger, LedgerEntry,
-                                             addLedgerEntry,
-                                             generateNextLedgerEntry,
-                                             genesisLedgerEntry, isValidLedger)
+import           Ledger               (EData)
+import           LedgerImpl           (Ledger, LedgerEntry, addLedgerEntry,
+                                       generateNextLedgerEntry,
+                                       genesisLedgerEntry, isValidLedger)
 import           LedgerImplState      (initialLedgerImplState)
 import           Logging              (configureLogging)
 import           TransportUDP         (startNodeComm)
@@ -53,10 +53,10 @@ initializeCommandDispatcher = do
           (Main.addBlock mv)
           (Main.isValid ledgerState))
 
-getMsgsToSendToConsensusNodes :: MVar BlockData -> IO BlockData
+getMsgsToSendToConsensusNodes :: MVar EData -> IO EData
 getMsgsToSendToConsensusNodes  = takeMVar
 
-sendToConsensusNodes :: MVar BlockData -> BlockData -> IO ()
+sendToConsensusNodes :: MVar EData -> EData -> IO ()
 sendToConsensusNodes  = putMVar
 
 listBlocks :: MVar Ledger -> Maybe Int -> IO (Maybe Ledger)
@@ -69,7 +69,7 @@ listBlocks ledger i =
                                           Nothing -> return Nothing
                                           Just el -> return (Just [el])
 
-addBlock :: MVar BlockData -> BlockData -> IO LedgerEntry
+addBlock :: MVar EData -> EData -> IO LedgerEntry
 addBlock sendToConsensusNodesMV blockdata = do
   let newLedgerEntry = generateNextLedgerEntry genesisLedgerEntry "fake timestamp" blockdata
   -- send block to verifiers
@@ -79,5 +79,5 @@ addBlock sendToConsensusNodesMV blockdata = do
 
 isValid :: MVar Ledger -> LedgerEntry -> IO (Maybe String)
 isValid ledger ledgerEntry =
-  withMVar ledger $ \l -> return $ isValidLedger (BC.addLedgerEntry ledgerEntry l)
+  withMVar ledger $ \l -> return $ isValidLedger (addLedgerEntry ledgerEntry l)
 

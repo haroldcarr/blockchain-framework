@@ -11,10 +11,12 @@ module LedgerImpl
   , calculateHash
   , isValidLedgerEntry
   , isValidLedger
-  , Timestamp
-  , BlockData
+  , ETimestamp
+  , EData
   )
 where
+
+import           Ledger
 
 import           Control.Applicative    ((<|>))
 import           Crypto.Hash.SHA256     (hash)
@@ -26,24 +28,20 @@ import           Data.ByteString.Char8  as BSC8 (pack)
 import           Data.Text              as T
 import           Data.Text.Encoding     (decodeUtf8, encodeUtf8)
 
-type Index      = Integer
-type Hash       = ByteString
-type Timestamp  = ByteString
-type BlockData  = ByteString
 type Ledger     = [LedgerEntry]
 
 data LedgerEntry =
-  LedgerEntry { bindex       :: ! Index
-              , previousHash :: ! Hash
-              , timestamp    :: ! Timestamp
-              , bdata        :: ! BlockData
-              , bhash        :: ! Hash
+  LedgerEntry { bindex       :: ! EIndex
+              , previousHash :: ! EHash
+              , timestamp    :: ! ETimestamp
+              , bdata        :: ! EData
+              , bhash        :: ! EHash
               } deriving (Eq, Show)
 
-calculateHash :: Index -> Hash -> Timestamp -> BlockData -> Hash
+calculateHash :: EIndex -> EHash -> ETimestamp -> EData -> EHash
 calculateHash i p t d = hash (BS.concat [BSC8.pack (show i), p, BSC8.pack (show t), d])
 
-calculateHashForLedgerEntry :: LedgerEntry -> Hash
+calculateHashForLedgerEntry :: LedgerEntry -> EHash
 calculateHashForLedgerEntry b = calculateHash (bindex b) (previousHash b) (timestamp b) (bdata b)
 
 genesisLedgerEntry :: LedgerEntry
@@ -55,7 +53,7 @@ genesisLedgerEntry =
       h  = calculateHash i ph t d
   in LedgerEntry i ph t d h
 
-generateNextLedgerEntry :: LedgerEntry -> Timestamp -> BlockData -> LedgerEntry
+generateNextLedgerEntry :: LedgerEntry -> ETimestamp -> EData -> LedgerEntry
 generateNextLedgerEntry previousLedgerEntry tstamp blockData =
   let i  = bindex previousLedgerEntry + 1
       ph = bhash previousLedgerEntry
@@ -77,6 +75,8 @@ isValidLedger       []  = Just "empty ledger"
 
 addLedgerEntry :: LedgerEntry -> Ledger -> Ledger
 addLedgerEntry e es = e : es
+
+------------------------------------------------------------------------------
 
 -- https://github.com/bos/aeson/issues/187
 
