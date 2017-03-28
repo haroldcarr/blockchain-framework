@@ -7,15 +7,15 @@ import           Consensus
 import           Http                 (commandReceiver)
 import           Ledger               (EData)
 import           LedgerImpl           (Ledger, LedgerEntry, addLedgerEntry,
-                                       generateNextLedgerEntry,
-                                       genesisLedgerEntry, isValidLedger)
+                                       generateNextLedgerEntry, getEntry,
+                                       getLastCommittedEntry, isValidLedger,
+                                       mkLedger)
 import           LedgerImplState      (initialLedgerImplState)
 import           Logging              (configureLogging)
 import           TransportUDP         (startNodeComm)
 
 import           Control.Concurrent   (MVar, newEmptyMVar, putMVar, takeMVar,
                                        withMVar)
-import           Control.Lens         (element, (^?))
 import           Data.Aeson           (encode)
 import           Data.ByteString.Lazy (toStrict)
 import           Network.Socket       (HostName, PortNumber)
@@ -50,7 +50,7 @@ initializeCommandDispatcher = do
           (getMsgsToSendToConsensusNodes mv)
           (sendToConsensusNodes mv)
           (Main.listBlocks ledgerState)
-          (Main.addBlock mv)
+          (Main.addBlock ledgerState mv)
           (Main.isValid ledgerState))
 
 getMsgsToSendToConsensusNodes :: MVar EData -> IO EData
@@ -65,17 +65,18 @@ listBlocks ledger i =
     -- return all entries
     Nothing -> withMVar ledger $ return . Just
     -- return the single entry (as a one-element list)
-    Just i' -> withMVar ledger $ \bc -> case bc ^? element i' of
+    Just i' -> withMVar ledger $ \es -> case getEntry es i' of
                                           Nothing -> return Nothing
-                                          Just el -> return (Just [el])
+                                          Just el -> return (Just (mkLedger el))
 
-addBlock :: MVar EData -> EData -> IO LedgerEntry
-addBlock sendToConsensusNodesMV blockdata = do
-  let newLedgerEntry = generateNextLedgerEntry genesisLedgerEntry "fake timestamp" blockdata
-  -- send block to verifiers
-  putMVar sendToConsensusNodesMV (toStrict (encode (AppendEntry newLedgerEntry)))
-  -- return block to caller
-  return newLedgerEntry
+addBlock :: MVar Ledger -> MVar EData -> EData -> IO LedgerEntry
+addBlock ledger sendToConsensusNodesMV edata =
+  withMVar ledger $ \ledger' -> do
+    let newLedgerEntry = generateNextLedgerEntry (getLastCommittedEntry ledger') "fake timestamp" edata
+    -- send entry to verifiers
+    putMVar sendToConsensusNodesMV (toStrict (encode (AppendEntry newLedgerEntry)))
+    -- return entry to caller
+    return newLedgerEntry
 
 isValid :: MVar Ledger -> LedgerEntry -> IO (Maybe String)
 isValid ledger ledgerEntry =

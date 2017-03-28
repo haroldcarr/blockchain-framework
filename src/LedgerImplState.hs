@@ -3,9 +3,9 @@ module LedgerImplState
   )
 where
 
-import           LedgerImpl              (Ledger, genesisLedgerEntry)
+import           LedgerImpl              (Ledger, genesisLedger)
 
 import           Control.Concurrent.MVar (MVar, newMVar)
 
 initialLedgerImplState :: IO (MVar Ledger)
-initialLedgerImplState = newMVar [genesisLedgerEntry]
+initialLedgerImplState = newMVar genesisLedger

@@ -2,7 +2,6 @@
 
 module CommunicationSpec (spec) where
 
-import           Data.Aeson (decode, encode)
 import           Test.Hspec
 
 spec :: Spec
