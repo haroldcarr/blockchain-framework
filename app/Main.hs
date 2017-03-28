@@ -6,10 +6,9 @@ import           CommandDispatcher
 import           Consensus
 import           Http                 (commandReceiver)
 import           Ledger               (EData)
-import           LedgerImpl           (Ledger, LedgerEntry, addLedgerEntry,
-                                       generateNextLedgerEntry, getEntry,
-                                       getLastCommittedEntry, isValidLedger,
-                                       mkLedger)
+import           LedgerImpl           (Ledger, LedgerEntry, LedgerEntryTC (..),
+                                       LedgerTC (..), generateNextLedgerEntry,
+                                       getLastCommittedEntry)
 import           LedgerImplState      (initialLedgerImplState)
 import           Logging              (configureLogging)
 import           TransportUDP         (startNodeComm)
@@ -60,14 +59,7 @@ sendToConsensusNodes :: MVar EData -> EData -> IO ()
 sendToConsensusNodes  = putMVar
 
 listBlocks :: MVar Ledger -> Maybe Int -> IO (Maybe Ledger)
-listBlocks ledger i =
-  case i of
-    -- return all entries
-    Nothing -> withMVar ledger $ return . Just
-    -- return the single entry (as a one-element list)
-    Just i' -> withMVar ledger $ \es -> case getEntry es i' of
-                                          Nothing -> return Nothing
-                                          Just el -> return (Just (mkLedger el))
+listBlocks ledger i = withMVar ledger $ \l -> return (listEntries l i)
 
 addBlock :: MVar Ledger -> MVar EData -> EData -> IO LedgerEntry
 addBlock ledger sendToConsensusNodesMV edata =
@@ -79,6 +71,5 @@ addBlock ledger sendToConsensusNodesMV edata =
     return newLedgerEntry
 
 isValid :: MVar Ledger -> LedgerEntry -> IO (Maybe String)
-isValid ledger ledgerEntry =
-  withMVar ledger $ \l -> return $ isValidLedger (addLedgerEntry ledgerEntry l)
+isValid ledger ledgerEntry = withMVar ledger $ \l -> return (isValidEntry l ledgerEntry)
 
