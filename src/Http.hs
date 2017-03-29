@@ -2,17 +2,17 @@
 
 module Http
   ( commandReceiver
-  , showBlocks
+  , listEntriesReq
   )
 where
 
 import           CommandDispatcher     (CommandDispatcher (CommandDispatcher))
+import           Ledger                (EData)
 import           Logging               (http)
 
 import           Control.Applicative   ((<|>))
 import           Control.Monad.Trans   (liftIO)
 import           Data.Aeson            (ToJSON, encode)
-import           Data.ByteString       (ByteString)
 import           Data.ByteString.Char8 as BSC8 (unpack)
 import           Data.ByteString.Lazy  (toStrict)
 import           Data.Monoid           ((<>))
@@ -25,37 +25,37 @@ import           Snap.Internal.Core    (MonadSnap)
 import           System.Log.Logger     (infoM)
 import           Text.Read             (readMaybe)
 
-commandReceiver :: CommandDispatcher -> HostName -> PortNumber -> IO ()
-commandReceiver (CommandDispatcher _ _ _ listBlocks addBlock _) host port = do
+commandReceiver :: (Show e, ToJSON e, ToJSON l) => CommandDispatcher e l -> HostName -> PortNumber -> IO ()
+commandReceiver (CommandDispatcher _ _ _ listEntries addEntry _) host port = do
   let config = setErrorLog ConfigNoLog . setAccessLog ConfigNoLog $ setPort (fromEnum port) mempty :: Config Snap ()
   simpleHttpServe config $
     ifTop (writeBS "hello world") <|>
-    route [ ("blocks/:i",    showBlocks listBlocks)
-          , ("addBlock/:bd", addBlockReq host port addBlock)
+    route [ ("entries/:i",   listEntriesReq listEntries)
+          , ("addEntry/:bd", addEntryReq host port addEntry)
           ]
 
-showBlocks :: (ToJSON a, Read a1, MonadSnap m)
-           => (Maybe a1 -> IO a)
-           -> m ()
-showBlocks listBlocks = do
+listEntriesReq :: (ToJSON a, Read i, MonadSnap m)
+               => (Maybe i -> IO a)
+               -> m ()
+listEntriesReq listEntries = do
   i <- getParam "i"
   maybe (writeBS "must specify index")
         (\i' -> case readMaybe (BSC8.unpack i') of
                   Nothing -> writeBS "index must be an int"
-                  justI   -> do blocks <- liftIO (listBlocks justI)
-                                writeBS (toStrict (encode blocks)))
+                  justI   -> do entries <- liftIO (listEntries justI)
+                                writeBS (toStrict (encode entries)))
         i
 
-addBlockReq :: (ToJSON a, Show a, MonadSnap m)
+addEntryReq :: (ToJSON a, Show a, MonadSnap m)
             => HostName
             -> PortNumber
-            -> (ByteString -> IO a)
+            -> (EData -> IO a)
             -> m ()
-addBlockReq host port addBlock = do
+addEntryReq host port addEntry = do
   bd <- getParam "bd"
   maybe (writeBS "must specify data")
-        (\bd' -> do newBlock <- liftIO (addBlock bd')
-                    liftIO (infoM http ("http: addBlockReq: " <> host <> " " <> show port <> " " <> show newBlock))
-                    writeBS (toStrict (encode newBlock)))
+        (\bd' -> do newEntry <- liftIO (addEntry bd')
+                    liftIO (infoM http ("http: addEntryReq: " <> host <> " " <> show port <> " " <> show newEntry))
+                    writeBS (toStrict (encode newEntry)))
         bd
 

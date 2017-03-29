@@ -10,9 +10,9 @@ library
                      , Http
                      , Ledger
                      , LedgerImpl
-                     , LedgerImplState
                      , Logging
                      , TransportUDP
+                     , Util
   build-depends:       base >= 4.7 && < 5
                      , aeson
                      , base64-bytestring

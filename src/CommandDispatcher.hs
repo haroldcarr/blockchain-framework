@@ -6,18 +6,23 @@ module CommandDispatcher
   )
 where
 
-import           Consensus  (HandleConsensusMessage)
-import           Ledger     (EData)
-import           LedgerImpl (Ledger, LedgerEntry)
+import           Consensus (HandleConsensusMessage)
+import           Ledger    (EData, EHash, EIndex, ETimestamp)
 
-data CommandDispatcher =
+data CommandDispatcher entry ledger =
   CommandDispatcher
-  -- CONSENSUS
-  {-  handleConsensusMessage       :: -} HandleConsensusMessage
-  {-, getMsgToSendToConsensusNodes :: -} (IO EData)
-  {-, sendToConsensusNodes         :: -} (EData       -> IO ())
-  -- BLOCKCHAIN
-    -- Nothing: return all; Just i: return block at index i
-  {-, listBlocks                   :: -} (Maybe Int   -> IO (Maybe Ledger))
-  {-, addBlock                     :: -} (EData       -> IO LedgerEntry)  -- TODO : split into Blockchain and Consensus ops
-  {-, isValid                      :: -} (LedgerEntry -> IO (Maybe String))
+    -- CONSENSUS
+    -- handleConsensusMessage
+    HandleConsensusMessage
+    -- getMsgToSendToConsensusNodes
+    (IO EData)
+    -- sendToConsensusNodes
+    (EData       -> IO ())
+    -- BLOCKCHAIN
+    -- listBlocks : Nothing: return all; Just i: return block at index i
+    (Maybe Int   -> IO (Maybe ledger))
+    -- TODO : split into Blockchain and Consensus ops
+    -- addBlock
+    (EData       -> IO entry)
+    -- isValid
+    (EIndex -> ETimestamp -> EData -> EHash -> IO (Maybe String))

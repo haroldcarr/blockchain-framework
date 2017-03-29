@@ -5,16 +5,13 @@ module Main where
 import           CommandDispatcher
 import           Consensus
 import           Http                 (commandReceiver)
-import           Ledger               (EData)
-import           LedgerImpl           (Ledger, LedgerEntry, LedgerEntryTC (..),
-                                       LedgerTC (..), generateNextLedgerEntry,
-                                       getLastCommittedEntry)
-import           LedgerImplState      (initialLedgerImplState)
+import           Ledger
+import           LedgerImpl
 import           Logging              (configureLogging)
 import           TransportUDP         (startNodeComm)
 
-import           Control.Concurrent   (MVar, newEmptyMVar, putMVar, takeMVar,
-                                       withMVar)
+import           Control.Concurrent   (MVar, newEmptyMVar, newMVar, putMVar,
+                                       takeMVar, withMVar)
 import           Data.Aeson           (encode)
 import           Data.ByteString.Lazy (toStrict)
 import           Network.Socket       (HostName, PortNumber)
@@ -40,9 +37,9 @@ doIt httpPort host port = do
   startNodeComm commandDispatcher host port
   commandReceiver commandDispatcher "0.0.0.0" httpPort
 
-initializeCommandDispatcher :: IO CommandDispatcher
+initializeCommandDispatcher :: IO (CommandDispatcher LedgerEntryImpl LedgerImpl)
 initializeCommandDispatcher = do
-  ledgerState <- initialLedgerImplState
+  ledgerState <- newMVar genesisLedger
   mv <- newEmptyMVar
   return (CommandDispatcher
           Consensus.handleConsensusMessage
@@ -58,18 +55,18 @@ getMsgsToSendToConsensusNodes  = takeMVar
 sendToConsensusNodes :: MVar EData -> EData -> IO ()
 sendToConsensusNodes  = putMVar
 
-listBlocks :: MVar Ledger -> Maybe Int -> IO (Maybe Ledger)
+listBlocks :: MVar LedgerImpl -> Maybe Int -> IO (Maybe LedgerImpl)
 listBlocks ledger i = withMVar ledger $ \l -> return (listEntries l i)
 
-addBlock :: MVar Ledger -> MVar EData -> EData -> IO LedgerEntry
-addBlock ledger sendToConsensusNodesMV edata =
+addBlock :: MVar LedgerImpl -> MVar EData -> EData -> IO LedgerEntryImpl
+addBlock ledger sendToConsensusNodesMV edata0 =
   withMVar ledger $ \ledger' -> do
-    let newLedgerEntry = generateNextLedgerEntry (getLastCommittedEntry ledger') "fake timestamp" edata
+    let nle = generateNextLedgerEntry (getLastCommittedEntry ledger') "fake timestamp" edata0
     -- send entry to verifiers
-    putMVar sendToConsensusNodesMV (toStrict (encode (AppendEntry newLedgerEntry)))
+    putMVar sendToConsensusNodesMV (toStrict (encode (AppendEntry "AER" (eindex nle) (etimestamp nle) (edata nle) (ehash nle))))
     -- return entry to caller
-    return newLedgerEntry
+    return nle
 
-isValid :: MVar Ledger -> LedgerEntry -> IO (Maybe String)
-isValid ledger ledgerEntry = withMVar ledger $ \l -> return (isValidEntry l ledgerEntry)
+isValid :: MVar LedgerImpl -> EIndex -> ETimestamp -> EData -> EHash -> IO (Maybe String)
+isValid ledger i t d h = withMVar ledger $ \l -> return (isValidEntry' l i t d h)
 
