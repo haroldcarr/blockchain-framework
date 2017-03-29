@@ -6,7 +6,7 @@ module Http
   )
 where
 
-import           CommandDispatcher     (CommandDispatcher (CommandDispatcher))
+import           CommandDispatcher     (AddEntry, ListEntries)
 import           Ledger                (EData)
 import           Logging               (http)
 
@@ -25,8 +25,12 @@ import           Snap.Internal.Core    (MonadSnap)
 import           System.Log.Logger     (infoM)
 import           Text.Read             (readMaybe)
 
-commandReceiver :: (Show e, ToJSON e, ToJSON l) => CommandDispatcher e l -> HostName -> PortNumber -> IO ()
-commandReceiver (CommandDispatcher _ _ _ listEntries addEntry _) host port = do
+commandReceiver :: (Show e, ToJSON e, ToJSON l)
+                => HostName -> PortNumber
+                -> ListEntries l
+                -> AddEntry e
+                -> IO ()
+commandReceiver host port listEntries addEntry = do
   let config = setErrorLog ConfigNoLog . setAccessLog ConfigNoLog $ setPort (fromEnum port) mempty :: Config Snap ()
   simpleHttpServe config $
     ifTop (writeBS "hello world") <|>

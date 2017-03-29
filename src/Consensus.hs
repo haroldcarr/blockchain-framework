@@ -7,7 +7,7 @@ where
 {-
 data Consensus =
   Consensus
-    -- handleConsensusMessage
+    -- recFromConsensusNodes
     HandleConsensusMessage
     -- getMsgToSendToConsensusNodes
     (IO EData)

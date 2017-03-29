@@ -6,8 +6,8 @@ module ConsensusImpl
   ( AppendEntry (..)
   , AppendEntryResponse (..)
   , ConsensusMessage
-  , handleConsensusMessage
-  , HandleConsensusMessage
+  , recFromConsensusNodes
+  , RecFromConsensusNodes
   )
 where
 
@@ -66,15 +66,15 @@ instance FromJSON AppendEntry where
 
 type ConsensusMessage = ByteString
 
-type HandleConsensusMessage = HostName
+type RecFromConsensusNodes  = HostName
                            -> PortNumber
                            -> (ByteString -> IO ())
                            -> (EIndex -> ETimestamp -> EData -> EHash -> IO (Maybe String))
                            -> ByteString
                            -> IO ()
 
-handleConsensusMessage :: HandleConsensusMessage
-handleConsensusMessage host port sendToConsensusNodes isValid msg =
+recFromConsensusNodes :: RecFromConsensusNodes
+recFromConsensusNodes host port sendToConsensusNodes isValid msg =
   if | BS.isInfixOf "\"aetype\":\"AER\"" msg -> do
          infoC host port "APPENDENTRY"
          case decodeStrict msg of

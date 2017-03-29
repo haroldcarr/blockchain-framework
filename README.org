@@ -7,3 +7,28 @@ curl -s http://127.0.0.1:9160/addBlock/FAKE_BLOCK_DATA | jq -M .
 # TODO : actually add the block
 curl -s http://127.0.0.1:9160/blocks/1 | jq -M .
 #+end_example
+
+#+begin_example
+             listEntries
+           +------------------------>  Ledger
+           |                             ^
+           |                             |
+           |                             | isValid
+           |                             | addEntry
+           |                             |
+           |                             |
+           | addEntry                    |            send
+   CMD  ---+------------------------>  Consensus  ------------------>  Peer
+Receiver                                 |   ^                     Communication
+                                         |   |                          |
+                                         |   |        rec               |
+                                         |   +--------------------------+
+                                         |
+                                         |
+                                         |
+                                         | applyCommand
+                                         |
+                                         v
+                                  Command Executor
+                         (i.e., smart contract execution)
+#+end_example
