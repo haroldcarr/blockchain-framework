@@ -5,13 +5,13 @@ cabal-version:       >=1.10
 
 library
   hs-source-dirs:      src
-  exposed-modules:     CommandDispatcher
-                     , Consensus
+  exposed-modules:     Consensus
                      , ConsensusImpl
                      , Http
                      , Ledger
                      , LedgerImpl
                      , Logging
+                     , SystemWiring
                      , TransportUDP
                      , Util
   build-depends:       base >= 4.7 && < 5

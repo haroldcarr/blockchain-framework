@@ -5,13 +5,15 @@
 module ConsensusImpl
   ( AppendEntry (..)
   , AppendEntryResponse (..)
-  , ConsensusMessage
-  , recFromConsensusNodes
+  , recFromConsensusNodes'
+  , ConsensusCommunicationOps (..)
+  , RecFromConsensusNodes
+  , RecFromConsensusNodes2
+  , GetMsgToSendToConsensusNodes
+  , SendToConsensusNodes
   )
 where
 
-import           CommandDispatcher    as CD hiding (recFromConsensusNodes,
-                                             sendToConsensusNodes)
 import           Ledger
 import           Logging
 import           Util
@@ -64,21 +66,39 @@ instance FromJSON AppendEntry where
   parseJSON invalid    = typeMismatch "AppendEntry" invalid
 
 ------------------------------------------------------------------------------
+-- Communication
 
-type ConsensusMessage = ByteString
+type GetMsgToSendToConsensusNodes = IO EData
+type SendToConsensusNodes         = EData -> IO ()
+type RecFromConsensusNodes        = IsValid -> RecFromConsensusNodes2
+type RecFromConsensusNodes2       = HostName
+                                 -> PortNumber
+                                 -> SendToConsensusNodes
+                                 -> ByteString
+                                 -> IO ()
+type IsValid                      = EIndex -> ETimestamp -> EData -> EHash -> IO (Maybe String)
+
+-- | This structure is just to conceptually group communicaiton functions.
+-- It is not stricly necessary.
+data ConsensusCommunicationOps =
+  ConsensusCommunicationOps
+    { recFromConsensusNodes        :: RecFromConsensusNodes2
+    , getMsgToSendToConsensusNodes :: GetMsgToSendToConsensusNodes
+    , sendToConsensusNodes         :: SendToConsensusNodes
+    }
 
 -- recFromConsensusNodes :: RecFromConsensusNodes
-recFromConsensusNodes :: RecFromConsensusNodes
-recFromConsensusNodes isValid host port sendToConsensusNodes msg =
+recFromConsensusNodes' :: RecFromConsensusNodes
+recFromConsensusNodes' isValid host port sendToConsensusNodes' msg =
   if | BS.isInfixOf "\"aetype\":\"AER\"" msg -> do
          infoC host port "APPENDENTRY"
          case decodeStrict msg of
-           Nothing ->     sendToConsensusNodes (toStrict (encode (AppendEntryResponse False Nothing)))
+           Nothing ->     sendToConsensusNodes' (toStrict (encode (AppendEntryResponse False Nothing)))
            Just (AppendEntry _ aei aets aed aeh) -> do
              v <- isValid aei aets aed aeh
              case v of
-               Nothing -> sendToConsensusNodes (toStrict (encode (AppendEntryResponse True  (Just aei))))
-               _       -> sendToConsensusNodes (toStrict (encode (AppendEntryResponse False (Just aei))))
+               Nothing -> sendToConsensusNodes' (toStrict (encode (AppendEntryResponse True  (Just aei))))
+               _       -> sendToConsensusNodes' (toStrict (encode (AppendEntryResponse False (Just aei))))
      | BS.isInfixOf "\"aeresponse\":" msg -> do
          infoC host port "APPENDENTRYRESPONSE"
          case decodeStrict msg of

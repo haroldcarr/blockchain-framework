@@ -4,7 +4,7 @@ module TransportUDP
   (startNodeComm)
 where
 
-import           CommandDispatcher         hiding (getMsgToSendToConsensusNodes,
+import           ConsensusImpl             hiding (getMsgToSendToConsensusNodes,
                                             recFromConsensusNodes,
                                             sendToConsensusNodes)
 import           Ledger                    (EData)

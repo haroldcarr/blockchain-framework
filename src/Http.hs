@@ -6,9 +6,9 @@ module Http
   )
 where
 
-import           CommandDispatcher     (AddEntry, ListEntries)
 import           Ledger                (EData)
 import           Logging               (http)
+import           SystemWiring          (AddEntry, ListEntries)
 
 import           Control.Applicative   ((<|>))
 import           Control.Monad.Trans   (liftIO)

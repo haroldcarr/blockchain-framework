@@ -2,12 +2,12 @@
 
 module Main where
 
-import           CommandDispatcher    as CD
 import           ConsensusImpl        as CI
 import           Http                 (commandReceiver)
 import           Ledger
 import           LedgerImpl
 import           Logging              (configureLogging)
+import           SystemWiring         as SW
 import           TransportUDP         (startNodeComm)
 
 import           Control.Concurrent   (MVar, newEmptyMVar, newMVar, putMVar,
@@ -33,22 +33,24 @@ main = do
 doIt :: PortNumber -> HostName -> PortNumber -> IO ()
 doIt httpPort host port = do
   configureLogging
-  cd <- initializeCommandDispatcher
+  (cd, cc) <- initializeWiring
   startNodeComm host port
-                (CD.recFromConsensusNodes cd) (CD.getMsgToSendToConsensusNodes cd) (CD.sendToConsensusNodes cd)
-  commandReceiver "0.0.0.0" httpPort (CD.listEntries cd) (CD.addEntry cd)
+                (CI.recFromConsensusNodes cc) (CI.getMsgToSendToConsensusNodes cc) (CI.sendToConsensusNodes cc)
+  commandReceiver "0.0.0.0" httpPort (SW.listEntries cd) (SW.addEntry cd)
 
-initializeCommandDispatcher :: IO (CommandDispatcher LedgerEntryImpl LedgerImpl)
-initializeCommandDispatcher = do
+initializeWiring :: IO (SystemWiring LedgerEntryImpl LedgerImpl, ConsensusCommunicationOps)
+initializeWiring = do
   ledgerState <- newMVar genesisLedger
   mv <- newEmptyMVar
   let iv = Main.isValid ledgerState
-  return (CommandDispatcher
-          (CI.recFromConsensusNodes iv)
-          (takeMVar mv) -- getMsgsToSendToConsensusNodes
-          (putMVar mv)  -- sendToConsensusNodes
-          (Main.listEntries ledgerState)
-          (Main.addEntry ledgerState mv))
+  return ( SystemWiring
+            (Main.listEntries ledgerState)
+            (Main.addEntry ledgerState mv)
+         , ConsensusCommunicationOps
+            (CI.recFromConsensusNodes' iv)
+            (takeMVar mv) -- getMsgsToSendToConsensusNodes
+            (putMVar mv)  -- sendToConsensusNodes
+         )
 
 listEntries :: MVar LedgerImpl -> Maybe Int -> IO (Maybe LedgerImpl)
 listEntries ledger i = withMVar ledger $ \l -> return (Ledger.listEntries l i)
