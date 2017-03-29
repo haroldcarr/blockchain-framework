@@ -75,7 +75,7 @@ type HandleConsensusMessage = HostName
 
 handleConsensusMessage :: HandleConsensusMessage
 handleConsensusMessage host port sendToConsensusNodes isValid msg =
-  if | BS.isInfixOf "{\"aetype\":" msg -> do
+  if | BS.isInfixOf "\"aetype\":\"AER\"" msg -> do
          infoC host port "APPENDENTRY"
          case decodeStrict msg of
            Nothing ->     sendToConsensusNodes (toStrict (encode (AppendEntryResponse False Nothing)))
@@ -84,7 +84,7 @@ handleConsensusMessage host port sendToConsensusNodes isValid msg =
              case v of
                Nothing -> sendToConsensusNodes (toStrict (encode (AppendEntryResponse True  (Just aei))))
                _       -> sendToConsensusNodes (toStrict (encode (AppendEntryResponse False (Just aei))))
-     | BS.isInfixOf "\"aertype\":" msg -> do
+     | BS.isInfixOf "\"aeresponse\":" msg -> do
          infoC host port "APPENDENTRYRESPONSE"
          case decodeStrict msg of
            Just aer@(AppendEntryResponse _ _) -> infoC host port (show aer)

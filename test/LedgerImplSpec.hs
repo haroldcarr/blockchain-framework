@@ -13,13 +13,13 @@ spec :: Spec
 spec = do
   describe "generateNextEntry" $
     let i  = 1
-        ph = bhash genesisLedgerEntry
+        ph = ehash genesisLedgerEntry
         ts = "myTimestamp"
         ed = "myBlockdata"
         h  = calculateHash i ph ts ed
         ne = generateNextLedgerEntry genesisLedgerEntry ts ed
         nl = addLedgerEntry ne (addLedgerEntry genesisLedgerEntry S.empty)
-    in do it "generate"    $ ne                                       `shouldBe` LedgerEntry i ph ts ed h
+    in do it "generate"    $ ne                                       `shouldBe` LedgerEntryImpl i ph ts ed h
           it "validEntry"  $ isValidLedgerEntry genesisLedgerEntry ne `shouldBe` Nothing
           it "validLedger" $ isValidLedger nl                         `shouldBe` Nothing
           it "getEntry' 0" $ getEntry nl 0                            `shouldBe` Just ne

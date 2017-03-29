@@ -12,10 +12,6 @@ module LedgerImpl
   , generateNextLedgerEntry
   , getLastCommittedEntry
   , addLedgerEntry
-  , ehash
-  , etimestamp
-  , eindex
-  , edata
   , calculateHash
   , isValidLedgerEntry
   , isValidLedger
@@ -26,7 +22,7 @@ module LedgerImpl
   , isValidEntry'
   , getEntry
     -- protected
-  , LedgerEntryImpl
+  , LedgerEntryImpl (..)
   , LedgerImpl
   )
 where
