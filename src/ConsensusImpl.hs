@@ -7,10 +7,11 @@ module ConsensusImpl
   , AppendEntryResponse (..)
   , ConsensusMessage
   , recFromConsensusNodes
-  , RecFromConsensusNodes
   )
 where
 
+import           CommandDispatcher    as CD hiding (recFromConsensusNodes,
+                                             sendToConsensusNodes)
 import           Ledger
 import           Logging
 import           Util
@@ -66,15 +67,9 @@ instance FromJSON AppendEntry where
 
 type ConsensusMessage = ByteString
 
-type RecFromConsensusNodes  = HostName
-                           -> PortNumber
-                           -> (ByteString -> IO ())
-                           -> (EIndex -> ETimestamp -> EData -> EHash -> IO (Maybe String))
-                           -> ByteString
-                           -> IO ()
-
+-- recFromConsensusNodes :: RecFromConsensusNodes
 recFromConsensusNodes :: RecFromConsensusNodes
-recFromConsensusNodes host port sendToConsensusNodes isValid msg =
+recFromConsensusNodes isValid host port sendToConsensusNodes msg =
   if | BS.isInfixOf "\"aetype\":\"AER\"" msg -> do
          infoC host port "APPENDENTRY"
          case decodeStrict msg of

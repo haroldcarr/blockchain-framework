@@ -4,14 +4,13 @@ module TransportUDP
   (startNodeComm)
 where
 
-import           CommandDispatcher         (GetMsgToSendToConsensusNodes,
-                                            IsValid, SendToConsensusNodes)
-import           ConsensusImpl             (RecFromConsensusNodes)
+import           CommandDispatcher         hiding (getMsgToSendToConsensusNodes,
+                                            recFromConsensusNodes,
+                                            sendToConsensusNodes)
 import           Ledger                    (EData)
 import           Logging                   (consensusFollower)
 
 import           Control.Concurrent        (forkIO)
-import           Data.ByteString           (ByteString)
 import           Data.Monoid               ((<>))
 import           Network.Multicast         as NM (multicastReceiver,
                                                   multicastSender)
@@ -21,32 +20,30 @@ import           Network.Socket.ByteString as N (recvFrom, sendTo)
 import           System.Log.Logger         (infoM)
 
 startNodeComm :: HostName -> PortNumber
-              -> RecFromConsensusNodes -> GetMsgToSendToConsensusNodes -> SendToConsensusNodes -> IsValid
+              -> RecFromConsensusNodes2
+              -> GetMsgToSendToConsensusNodes
+              -> SendToConsensusNodes
               -> IO ()
-startNodeComm host port recFromConsensusNodes getMsgsToSendToConsensusNodes sendToConsensusNodes isValid  = do
+startNodeComm host port recFromConsensusNodes getMsgToSendToConsensusNodes sendToConsensusNodes = do
   _ <- infoN host port "startNodeComm: ENTER"
   (sendSock, sendAddr) <- multicastSender host port
   recSock <- multicastReceiver host port
-  forkIO $ send host port sendSock sendAddr getMsgsToSendToConsensusNodes
-  forkIO $ rec host port recSock sendSock sendAddr recFromConsensusNodes sendToConsensusNodes isValid
+  forkIO $ send host port sendSock sendAddr getMsgToSendToConsensusNodes
+  forkIO $ rec host port recSock sendSock sendAddr recFromConsensusNodes sendToConsensusNodes
   infoN host port "startNodeComm: EXIT"
   return ()
 
-rec :: HostName
-    -> PortNumber
-    -> Socket
-    -> t3
-    -> t2
-    -> (HostName -> PortNumber -> t1 -> t -> ByteString -> IO a)
-    -> t1
-    -> t
+rec :: HostName -> PortNumber
+    -> Socket -> Socket -> SockAddr
+    -> RecFromConsensusNodes2
+    -> SendToConsensusNodes
     -> IO b
-rec host port recSock sendSock sendAddr recFromConsensusNodes sendToConsensusNodes isValid = do
+rec host port recSock sendSock sendAddr recFromConsensusNodes sendToConsensusNodes = do
   infoN host port "rec: waiting"
   (msg,addr) <- N.recvFrom recSock 1024
   infoN host port  ("rec: from: " <> show addr <> " " <> show msg)
-  recFromConsensusNodes host port sendToConsensusNodes isValid msg
-  rec host port recSock sendSock sendAddr recFromConsensusNodes sendToConsensusNodes isValid
+  recFromConsensusNodes host port sendToConsensusNodes msg
+  rec host port recSock sendSock sendAddr recFromConsensusNodes sendToConsensusNodes
 
 -- Read from sendToConsensusNodes and broadcast
 send :: HostName -> PortNumber -> Socket -> SockAddr -> IO EData -> IO () -- TODO ByteString

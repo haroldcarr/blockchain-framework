@@ -3,7 +3,7 @@
 module Main where
 
 import           CommandDispatcher    as CD
-import           ConsensusImpl
+import           ConsensusImpl        as CI
 import           Http                 (commandReceiver)
 import           Ledger
 import           LedgerImpl
@@ -34,24 +34,24 @@ doIt :: PortNumber -> HostName -> PortNumber -> IO ()
 doIt httpPort host port = do
   configureLogging
   cd <- initializeCommandDispatcher
-  startNodeComm  host port (CD.recFromConsensusNodes cd) (CD.getMsgToSendToConsensusNodes cd)
-                           (CD.sendToConsensusNodes cd)  (CD.isValid cd)
+  startNodeComm host port
+                (CD.recFromConsensusNodes cd) (CD.getMsgToSendToConsensusNodes cd) (CD.sendToConsensusNodes cd)
   commandReceiver "0.0.0.0" httpPort (CD.listEntries cd) (CD.addEntry cd)
 
 initializeCommandDispatcher :: IO (CommandDispatcher LedgerEntryImpl LedgerImpl)
 initializeCommandDispatcher = do
   ledgerState <- newMVar genesisLedger
   mv <- newEmptyMVar
+  let iv = Main.isValid ledgerState
   return (CommandDispatcher
-          ConsensusImpl.recFromConsensusNodes
+          (CI.recFromConsensusNodes iv)
           (takeMVar mv) -- getMsgsToSendToConsensusNodes
           (putMVar mv)  -- sendToConsensusNodes
-          (listEntries' ledgerState)
-          (Main.addEntry ledgerState mv)
-          (Main.isValid ledgerState))
+          (Main.listEntries ledgerState)
+          (Main.addEntry ledgerState mv))
 
-listEntries' :: MVar LedgerImpl -> Maybe Int -> IO (Maybe LedgerImpl)
-listEntries' ledger i = withMVar ledger $ \l -> return (Ledger.listEntries l i)
+listEntries :: MVar LedgerImpl -> Maybe Int -> IO (Maybe LedgerImpl)
+listEntries ledger i = withMVar ledger $ \l -> return (Ledger.listEntries l i)
 
 addEntry :: MVar LedgerImpl -> MVar EData -> EData -> IO LedgerEntryImpl
 addEntry ledger sendToConsensusNodesMV edata0 =
