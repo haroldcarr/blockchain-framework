@@ -6,8 +6,8 @@ module CommandDispatcher
   )
 where
 
-import           Consensus (HandleConsensusMessage)
-import           Ledger    (EData, EHash, EIndex, ETimestamp)
+import           ConsensusImpl (HandleConsensusMessage)
+import           Ledger        (EData, EHash, EIndex, ETimestamp)
 
 data CommandDispatcher entry ledger =
   CommandDispatcher

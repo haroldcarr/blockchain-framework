@@ -3,7 +3,7 @@
 module Main where
 
 import           CommandDispatcher
-import           Consensus
+import           ConsensusImpl
 import           Http                 (commandReceiver)
 import           Ledger
 import           LedgerImpl
@@ -42,24 +42,18 @@ initializeCommandDispatcher = do
   ledgerState <- newMVar genesisLedger
   mv <- newEmptyMVar
   return (CommandDispatcher
-          Consensus.handleConsensusMessage
-          (getMsgsToSendToConsensusNodes mv)
-          (sendToConsensusNodes mv)
-          (Main.listBlocks ledgerState)
-          (Main.addBlock ledgerState mv)
-          (Main.isValid ledgerState))
+          handleConsensusMessage
+          (takeMVar mv) -- getMsgsToSendToConsensusNodes
+          (putMVar mv)  -- sendToConsensusNodes
+          (listEntries' ledgerState)
+          (addEntry ledgerState mv)
+          (isValid ledgerState))
 
-getMsgsToSendToConsensusNodes :: MVar EData -> IO EData
-getMsgsToSendToConsensusNodes  = takeMVar
+listEntries' :: MVar LedgerImpl -> Maybe Int -> IO (Maybe LedgerImpl)
+listEntries' ledger i = withMVar ledger $ \l -> return (listEntries l i)
 
-sendToConsensusNodes :: MVar EData -> EData -> IO ()
-sendToConsensusNodes  = putMVar
-
-listBlocks :: MVar LedgerImpl -> Maybe Int -> IO (Maybe LedgerImpl)
-listBlocks ledger i = withMVar ledger $ \l -> return (listEntries l i)
-
-addBlock :: MVar LedgerImpl -> MVar EData -> EData -> IO LedgerEntryImpl
-addBlock ledger sendToConsensusNodesMV edata0 =
+addEntry :: MVar LedgerImpl -> MVar EData -> EData -> IO LedgerEntryImpl
+addEntry ledger sendToConsensusNodesMV edata0 =
   withMVar ledger $ \ledger' -> do
     let nle = generateNextLedgerEntry (getLastCommittedEntry ledger') "fake timestamp" edata0
     -- send entry to verifiers
