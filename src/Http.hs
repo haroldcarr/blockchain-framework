@@ -1,4 +1,5 @@
 {-# LANGUAGE OverloadedStrings #-}
+{-# LANGUAGE RankNTypes        #-}
 
 module Http
   ( commandReceiver
@@ -8,7 +9,6 @@ where
 
 import           Ledger                (EData)
 import           Logging               (http)
-import           SystemWiring          (AddEntry, ListEntries)
 
 import           Control.Applicative   ((<|>))
 import           Control.Monad.Trans   (liftIO)
@@ -25,21 +25,21 @@ import           Snap.Internal.Core    (MonadSnap)
 import           System.Log.Logger     (infoM)
 import           Text.Read             (readMaybe)
 
-commandReceiver :: (Show e, ToJSON e, ToJSON l)
+commandReceiver :: (Show e, ToJSON e, ToJSON l, Read i)
                 => HostName -> PortNumber
-                -> ListEntries l
-                -> AddEntry e
+                -> (Maybe i -> IO l)
+                -> (EData -> IO e)
                 -> IO ()
 commandReceiver host port listEntries addEntry = do
   let config = setErrorLog ConfigNoLog . setAccessLog ConfigNoLog $ setPort (fromEnum port) mempty :: Config Snap ()
   simpleHttpServe config $
     ifTop (writeBS "hello world") <|>
     route [ ("entries/:i",   listEntriesReq listEntries)
-          , ("addEntry/:bd", addEntryReq host port addEntry)
+          , ("addEntry/:ed", addEntryReq host port addEntry)
           ]
 
-listEntriesReq :: (ToJSON a, Read i, MonadSnap m)
-               => (Maybe i -> IO a)
+listEntriesReq :: (ToJSON l, Read i, MonadSnap m)
+               => (Maybe i -> IO l)
                -> m ()
 listEntriesReq listEntries = do
   i <- getParam "i"
@@ -50,16 +50,16 @@ listEntriesReq listEntries = do
                                 writeBS (toStrict (encode entries)))
         i
 
-addEntryReq :: (ToJSON a, Show a, MonadSnap m)
+addEntryReq :: (ToJSON e, Show e, MonadSnap m)
             => HostName
             -> PortNumber
-            -> (EData -> IO a)
+            -> (EData -> IO e)
             -> m ()
 addEntryReq host port addEntry = do
-  bd <- getParam "bd"
+  ed <- getParam "ed"
   maybe (writeBS "must specify data")
-        (\bd' -> do newEntry <- liftIO (addEntry bd')
+        (\ed' -> do newEntry <- liftIO (addEntry ed')
                     liftIO (infoM http ("http: addEntryReq: " <> host <> " " <> show port <> " " <> show newEntry))
                     writeBS (toStrict (encode newEntry)))
-        bd
+        ed
 

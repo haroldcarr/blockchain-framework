@@ -2,17 +2,23 @@
 
 module Main where
 
-import           ConsensusImpl        as CI
+import           ConsensusImpl        as CI (AppendEntry (..),
+                                             ConsensusCommunicationOps (..),
+                                             SendToConsensusNodes,
+                                             recFromConsensusNodes')
+
 import           Http                 (commandReceiver)
 import           Ledger
-import           LedgerImpl
+import           LedgerImpl           (LedgerEntryImpl, LedgerImpl,
+                                       generateNextLedgerEntryInfo,
+                                       genesisLedger, isValidEntry')
 import           Logging              (configureLogging)
 import           SystemWiring         as SW
 import           TransportUDP         (startNodeComm)
 
 import           Control.Concurrent   (MVar, newEmptyMVar, newMVar, putMVar,
                                        takeMVar, withMVar)
-import           Data.Aeson           (encode)
+import           Data.Aeson           (ToJSON, encode)
 import           Data.ByteString.Lazy (toStrict)
 import           Network.Socket       (HostName, PortNumber)
 import           System.Environment   (getArgs)
@@ -38,31 +44,32 @@ doIt httpPort host port = do
                 (CI.recFromConsensusNodes cc) (CI.getMsgToSendToConsensusNodes cc) (CI.sendToConsensusNodes cc)
   commandReceiver "0.0.0.0" httpPort (SW.listEntries cd) (SW.addEntry cd)
 
-initializeWiring :: IO (SystemWiring LedgerEntryImpl LedgerImpl, ConsensusCommunicationOps)
+initializeWiring :: IO (SystemWiring LedgerImpl LedgerEntryImpl, ConsensusCommunicationOps)
 initializeWiring = do
   ledgerState <- newMVar genesisLedger
-  mv <- newEmptyMVar
-  let iv = Main.isValid ledgerState
+  commMV <- newEmptyMVar
+  let iv   = Main.isValid ledgerState
+      send = (putMVar commMV)
   return ( SystemWiring
             (Main.listEntries ledgerState)
-            (Main.addEntry ledgerState mv)
+            (Main.addEntry ledgerState send)
          , ConsensusCommunicationOps
             (CI.recFromConsensusNodes' iv)
-            (takeMVar mv) -- getMsgsToSendToConsensusNodes
-            (putMVar mv)  -- sendToConsensusNodes
+            (takeMVar commMV) -- getMsgsToSendToConsensusNodes
+            send              -- sendToConsensusNodes
          )
 
-listEntries :: MVar LedgerImpl -> Maybe Int -> IO (Maybe LedgerImpl)
+listEntries :: (ToJSON l, Ledger l) => MVar l -> Maybe Int -> IO (Maybe l)
 listEntries ledger i = withMVar ledger $ \l -> return (Ledger.listEntries l i)
 
-addEntry :: MVar LedgerImpl -> MVar EData -> EData -> IO LedgerEntryImpl
-addEntry ledger sendToConsensusNodesMV edata0 =
+addEntry :: MVar LedgerImpl -> SendToConsensusNodes -> EData -> IO (String, String, String)
+addEntry ledger sendToConsensusNodes0 edata0 =
   withMVar ledger $ \ledger' -> do
-    let nle = generateNextLedgerEntry (getLastCommittedEntry ledger') "fake timestamp" edata0
+    let (i, _, ts, _, h) = generateNextLedgerEntryInfo ledger' "fake timestamp" edata0
     -- send entry to verifiers
-    putMVar sendToConsensusNodesMV (toStrict (encode (AppendEntry "AER" (eindex nle) (etimestamp nle) (edata nle) (ehash nle))))
+    sendToConsensusNodes0 (toStrict (encode (AppendEntry "AER" i ts edata0 h)))
     -- return entry to caller
-    return nle
+    return (show i, show ts, show h)
 
 isValid :: MVar LedgerImpl -> EIndex -> ETimestamp -> EData -> EHash -> IO (Maybe String)
 isValid ledger i t d h = withMVar ledger $ \l -> return (isValidEntry' l i t d h)

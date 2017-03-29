@@ -1,13 +1,17 @@
 {-# LANGUAGE OverloadedStrings #-}
+{-# LANGUAGE RankNTypes        #-}
 
 module SystemWiring where
 
-import           Ledger (EData)
+import           Ledger     (EData, Ledger)
 
-type ListEntries ledger           = Maybe Int -> IO (Maybe ledger)
-type AddEntry entry               = EData     -> IO entry
+import           Data.Aeson (ToJSON)
 
-data SystemWiring entry ledger =
+type ListEntries ledger = (Ledger ledger, ToJSON ledger)
+                       => Maybe Int -> IO (Maybe ledger)
+type AddEntry    entry  = EData     -> IO (String, String, String)
+
+data SystemWiring ledger entry =
   SystemWiring
     {
       -- LEDGER
