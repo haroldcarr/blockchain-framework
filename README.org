@@ -20,7 +20,7 @@ kill ...
            |                             |
            | addEntry                    |            send
    CMD  ---+------------------------>  Consensus  ------------------>  Peer
-Receiver                                 |   ^                     Communication
+ Receiver                                |   ^                     Communication
                                          |   |                          |
                                          |   |        rec               |
                                          |   +--------------------------+

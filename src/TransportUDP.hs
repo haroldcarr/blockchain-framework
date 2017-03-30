@@ -4,9 +4,9 @@ module TransportUDP
   (startNodeComm)
 where
 
-import           ConsensusImpl             hiding (getMsgToSendToConsensusNodes,
-                                            recFromConsensusNodes,
-                                            sendToConsensusNodes)
+import           ConsensusImpl             (GetMsgToSendToConsensusNodes,
+                                            RecFromConsensusNodes2,
+                                            SendToConsensusNodes)
 import           Logging                   (consensusFollower)
 
 import           Control.Concurrent        (forkIO)
@@ -24,7 +24,7 @@ startNodeComm :: HostName -> PortNumber
               -> SendToConsensusNodes
               -> IO ()
 startNodeComm host port recFromConsensusNodes getMsgToSendToConsensusNodes sendToConsensusNodes = do
-  _ <- infoN host port "startNodeComm: ENTER"
+  infoN host port "startNodeComm: ENTER"
   (sendSock, sendAddr) <- multicastSender host port
   recSock <- multicastReceiver host port
   forkIO $ send host port sendSock sendAddr getMsgToSendToConsensusNodes
@@ -42,8 +42,9 @@ rec host port recSock sendSock sendAddr recFromConsensusNodes sendToConsensusNod
   recFromConsensusNodes host port sendToConsensusNodes msg
   rec host port recSock sendSock sendAddr recFromConsensusNodes sendToConsensusNodes
 
--- Read from sendToConsensusNodes and broadcast
-send :: HostName -> PortNumber -> Socket -> SockAddr -> GetMsgToSendToConsensusNodes -> IO () -- TODO ByteString
+send :: HostName -> PortNumber -> Socket -> SockAddr
+     -> GetMsgToSendToConsensusNodes
+     -> IO ()
 send host port sock addr getMsgToSendToConsensusNodes = do
   infoN host port "send: waiting"
   msg <- getMsgToSendToConsensusNodes

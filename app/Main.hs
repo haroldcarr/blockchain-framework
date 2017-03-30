@@ -3,6 +3,7 @@
 
 module Main where
 
+-- TODO addEntry - make generic
 import           ConsensusImpl      as CI (ConsensusCommunicationWiring (..),
                                            SendToConsensusNodes, addEntry,
                                            recFromConsensusNodes')
