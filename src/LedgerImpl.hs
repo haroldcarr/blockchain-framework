@@ -113,7 +113,6 @@ genesisLedger  = S.singleton genesisLedgerEntry
 getLastCommittedEntry :: Seq LedgerEntryImpl -> LedgerEntryImpl
 getLastCommittedEntry es = fromMaybe (error "getLastCommittedEntry") (getEntry es 0)
 
-
 mkLedger :: LedgerEntryImpl -> Seq LedgerEntryImpl
 mkLedger = S.singleton
 

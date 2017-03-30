@@ -9,8 +9,7 @@ import           ConsensusImpl        as CI (AppendEntry (..),
 
 import           Http                 (commandReceiver)
 import           Ledger
-import           LedgerImpl           (LedgerEntryImpl, LedgerImpl,
-                                       generateNextLedgerEntryInfo,
+import           LedgerImpl           (LedgerImpl, generateNextLedgerEntryInfo,
                                        genesisLedger, isValidEntry')
 import           Logging              (configureLogging)
 import           SystemWiring         as SW
@@ -44,7 +43,7 @@ doIt httpPort host port = do
                 (CI.recFromConsensusNodes cc) (CI.getMsgToSendToConsensusNodes cc) (CI.sendToConsensusNodes cc)
   commandReceiver "0.0.0.0" httpPort (SW.listEntries cd) (SW.addEntry cd)
 
-initializeWiring :: IO (SystemWiring LedgerImpl LedgerEntryImpl, ConsensusCommunicationOps)
+initializeWiring :: IO (SystemWiring LedgerImpl, ConsensusCommunicationOps)
 initializeWiring = do
   ledgerState <- newMVar genesisLedger
   commMV <- newEmptyMVar

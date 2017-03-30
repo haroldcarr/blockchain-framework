@@ -17,7 +17,7 @@ spec = do
         ts = "myTimestamp"
         ed = "myBlockdata"
         h  = calculateHash i ph ts ed
-        ne = generateNextLedgerEntry genesisLedgerEntry ts ed
+        ne = generateNextLedgerEntry genesisLedger ts ed
         nl = addLedgerEntry ne (addLedgerEntry genesisLedgerEntry S.empty)
     in do it "generate"    $ ne                                       `shouldBe` LedgerEntryImpl i ph ts ed h
           it "validEntry"  $ isValidLedgerEntry genesisLedgerEntry ne `shouldBe` Nothing
