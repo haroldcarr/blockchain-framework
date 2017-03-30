@@ -65,12 +65,15 @@ instance Ledger (Seq LedgerEntryImpl) where
         case getEntry ledger i' of
           Nothing -> Nothing
           Just e  -> Just (S.singleton e)
+  genNextEntry ledger ts d =
+    let (LedgerEntryImpl i _ _ _ h) = generateNextLedgerEntry ledger ts d
+    in (i, h)
 
 instance LedgerEntry LedgerEntryImpl (Seq LedgerEntryImpl) where
   getEntry ledger i   = if i < S.length ledger then Just (S.index ledger i) else Nothing
   isValidEntry ledger = isValidLedgerEntry (S.index ledger 0)
 
------
+------------------------------------------------------------------------------
 
 data LedgerEntry2 =
   LedgerEntry2 { bindex2 :: ! EIndex } deriving (Eq, Show)
@@ -82,6 +85,7 @@ instance Ledger [LedgerEntry2] where
       Nothing -> Just ledger
       -- return the single entry (as a one-element list)
       Just i' -> Just [ledger !! i']
+  genNextEntry _ _ _ = undefined
 
 instance LedgerEntry LedgerEntry2 [LedgerEntry2] where
   getEntry ledger i = if i < Prelude.length ledger

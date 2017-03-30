@@ -6,11 +6,12 @@ module ConsensusImpl
   ( AppendEntry (..)
   , AppendEntryResponse (..)
   , recFromConsensusNodes'
-  , ConsensusCommunicationOps (..)
+  , ConsensusCommunicationWiring (..)
   , RecFromConsensusNodes
   , RecFromConsensusNodes2
   , GetMsgToSendToConsensusNodes
   , SendToConsensusNodes
+  , addEntry
   )
 where
 
@@ -66,6 +67,16 @@ instance FromJSON AppendEntry where
   parseJSON invalid    = typeMismatch "AppendEntry" invalid
 
 ------------------------------------------------------------------------------
+
+addEntry :: Ledger l => l -> SendToConsensusNodes -> EData -> IO (EIndex, ETimestamp, EHash)
+addEntry ledger sendToConsensusNodes0 edata0 = do
+  let ts     = "fake timestamp"
+      (i, h) = genNextEntry ledger ts  edata0
+  -- send entry to verifiers
+  sendToConsensusNodes0 (toStrict (encode (AppendEntry "AER" i ts edata0 h)))
+  return (i, ts, h)
+
+------------------------------------------------------------------------------
 -- Communication
 
 type GetMsgToSendToConsensusNodes = IO EData
@@ -80,8 +91,8 @@ type IsValid                      = EIndex -> ETimestamp -> EData -> EHash -> IO
 
 -- | This structure is just to conceptually group communicaiton functions.
 -- It is not stricly necessary.
-data ConsensusCommunicationOps =
-  ConsensusCommunicationOps
+data ConsensusCommunicationWiring =
+  ConsensusCommunicationWiring
     { recFromConsensusNodes        :: RecFromConsensusNodes2
     , getMsgToSendToConsensusNodes :: GetMsgToSendToConsensusNodes
     , sendToConsensusNodes         :: SendToConsensusNodes

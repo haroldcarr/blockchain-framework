@@ -13,6 +13,7 @@ kill ...
            +------------------------>  Ledger
            |                             ^
            |                             |
+           |                             | genNextEntry
            |                             | isValid
            |                             | addEntry
            |                             |
