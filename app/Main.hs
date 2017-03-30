@@ -8,7 +8,7 @@ import           ConsensusImpl      as CI (ConsensusCommunicationWiring (..),
                                            recFromConsensusNodes')
 import           Http               (commandReceiver)
 import           Ledger
-import           LedgerImpl         (LedgerImpl, genesisLedger, isValidEntry')
+import           LedgerImpl         (LedgerImpl, genesisLedger)
 import           Logging            (configureLogging)
 import           SystemWiring       as SW
 import           TransportUDP       (startNodeComm)
@@ -51,7 +51,7 @@ initializeWiring = do
              (Main.addEntry ledgerState send)
          , ConsensusCommunicationWiring
              (CI.recFromConsensusNodes' iv)
-             (takeMVar commMV) -- getMsgsToSendToConsensusNodes
+             (takeMVar commMV) -- getMsgToSendToConsensusNodes
              send              -- sendToConsensusNodes
          )
 
@@ -59,11 +59,10 @@ listEntries :: (ToJSON l, Ledger l) => MVar l -> Maybe Int -> IO (Maybe l)
 listEntries ledger i = withMVar ledger $ \l -> return (Ledger.listEntries l i)
 
 addEntry :: Ledger l => MVar l -> SendToConsensusNodes -> EData -> IO (String, String, String)
-addEntry ledger sendToConsensusNodes0 edata0 =
-  withMVar ledger $ \ledger' -> do
-  (i, ts, h) :: (EIndex, ETimestamp, EHash) <- CI.addEntry ledger' sendToConsensusNodes0 edata0
+addEntry l s d =
+  withMVar l $ \l' -> do
+  (i, ts, h) :: (EIndex, ETimestamp, EHash) <- CI.addEntry l' s d
   return (show i, show ts, show h)
 
-isValid :: MVar LedgerImpl -> EIndex -> ETimestamp -> EData -> EHash -> IO (Maybe String)
-isValid ledger i t d h = withMVar ledger $ \l -> return (isValidEntry' l i t d h)
-
+isValid :: Ledger l => MVar l -> EIndex -> ETimestamp -> EData -> EHash -> IO (Maybe String)
+isValid l i t d h = withMVar l $ \l' -> return (isValidEntryData l' i t d h)

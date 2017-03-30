@@ -14,8 +14,9 @@ type EData      = ByteString
 class Ledger l where
   -- | index: Nothing: return all; Just i: return block at index i
   --   output: Nothing if index out of range
-  listEntries  :: l -> Maybe Int -> Maybe l
-  genNextEntry :: l -> ETimestamp -> EData -> (EIndex, EHash)
+  listEntries      :: l -> Maybe Int -> Maybe l
+  genNextEntry     :: l -> ETimestamp -> EData -> (EIndex, EHash)
+  isValidEntryData :: l -> EIndex -> ETimestamp -> EData -> EHash -> Maybe String
 
 class LedgerEntry e l where
   -- | isValidEntry : Nothing: valid; Just reason: not valid with reason.

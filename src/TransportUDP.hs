@@ -7,7 +7,6 @@ where
 import           ConsensusImpl             hiding (getMsgToSendToConsensusNodes,
                                             recFromConsensusNodes,
                                             sendToConsensusNodes)
-import           Ledger                    (EData)
 import           Logging                   (consensusFollower)
 
 import           Control.Concurrent        (forkIO)
@@ -33,10 +32,8 @@ startNodeComm host port recFromConsensusNodes getMsgToSendToConsensusNodes sendT
   infoN host port "startNodeComm: EXIT"
   return ()
 
-rec :: HostName -> PortNumber
-    -> Socket -> Socket -> SockAddr
-    -> RecFromConsensusNodes2
-    -> SendToConsensusNodes
+rec :: HostName -> PortNumber -> Socket -> Socket -> SockAddr
+    -> RecFromConsensusNodes2 -> SendToConsensusNodes
     -> IO b
 rec host port recSock sendSock sendAddr recFromConsensusNodes sendToConsensusNodes = do
   infoN host port "rec: waiting"
@@ -46,13 +43,13 @@ rec host port recSock sendSock sendAddr recFromConsensusNodes sendToConsensusNod
   rec host port recSock sendSock sendAddr recFromConsensusNodes sendToConsensusNodes
 
 -- Read from sendToConsensusNodes and broadcast
-send :: HostName -> PortNumber -> Socket -> SockAddr -> IO EData -> IO () -- TODO ByteString
-send host port sock addr getMsgsToSendToConsensusNodes = do
+send :: HostName -> PortNumber -> Socket -> SockAddr -> GetMsgToSendToConsensusNodes -> IO () -- TODO ByteString
+send host port sock addr getMsgToSendToConsensusNodes = do
   infoN host port "send: waiting"
-  msg <- getMsgsToSendToConsensusNodes
+  msg <- getMsgToSendToConsensusNodes
   infoN host port ("send: " ++ show msg)
   sendTo sock msg addr
-  send host port sock addr getMsgsToSendToConsensusNodes
+  send host port sock addr getMsgToSendToConsensusNodes
 
 infoN :: HostName -> PortNumber -> String -> IO Int
 infoN h p msg = do
