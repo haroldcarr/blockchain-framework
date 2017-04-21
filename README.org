@@ -9,27 +9,31 @@ kill ...
 #+end_example
 
 #+begin_example
-             listEntries
-           +------------------------>  Ledger
-           |                             ^
-           |                             |
-           |                             | genNextEntry
-           |                             | isValid
-           |                             | addEntry
-           |                             |
-           |                             |
-           | addEntry                    |            send
-   CMD  ---+------------------------>  Consensus  ------------------>  Peer
- Receiver                                |   ^                     Communication
-                                         |   |                          |
-                                         |   |        rec               |
-                                         |   +--------------------------+
-                                         |
-                                         |
-                                         |
-                                         | applyCommand
-                                         |
-                                         v
-                                  Command Executor
-                         (i.e., smart contract execution)
+                             listEntries            +--------+
+                         +------------------------> | Ledger |
+                         |                          +--------+
+                         |                              ^
+                         |                              |
+                         |                              | genNextEntry
+                         |                              | isValid
+                         |                              | addEntry
+                         |                              |
+                         |                              |
++--------+   cmd    +----------+    addEntry      +-----------+     send      +---------------+
+| Client | -------> |  CMD     | ---------------> | Consensus | ------------> | Peer          | <-------> Peers
++--------+          | Receiver |                  +-----------+               | Communication |
+    ^               +----------+                    |   |   ^                 +---------------+
+    |                                               |   |   |                         |
+    |        cmd result                             |   |   |       rec               |
+    +-----------------------------------------------+   |   +-------------------------+
+                                                        |
+                                                        |
+                                                        |
+                                                        | applyCommand
+                                                        |
+                                                        v
+                                               +------------------+
+                                               | Command Executor |
+                                               +------------------+
+                                         (i.e., smart contract execution)
 #+end_example
