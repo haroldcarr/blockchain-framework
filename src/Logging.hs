@@ -1,3 +1,6 @@
+{-# LANGUAGE NoImplicitPrelude #-}
+{-# LANGUAGE OverloadedStrings #-}
+
 module Logging
   ( mainProgram
   , http
@@ -8,10 +11,11 @@ module Logging
   )
 where
 
+import           Protolude
 import           System.Log.Logger (Priority (INFO), setLevel,
                                     updateGlobalLogger)
 
-mainProgram, http, consensus, consensusFollower, consensusLeader :: String
+mainProgram, http, consensus, consensusFollower, consensusLeader :: Text
 mainProgram       = "MAIN"
 http              = "HTTP"
 consensus         = "Consensus"
@@ -20,8 +24,8 @@ consensusLeader   = "Consensus.Leader"
 
 configureLogging :: IO ()
 configureLogging  = do
-  updateGlobalLogger mainProgram       (setLevel INFO)
-  updateGlobalLogger http              (setLevel INFO)
-  updateGlobalLogger consensus         (setLevel INFO)
-  updateGlobalLogger consensusFollower (setLevel INFO)
-  updateGlobalLogger consensusLeader   (setLevel INFO)
+  updateGlobalLogger (toS mainProgram)       (setLevel INFO)
+  updateGlobalLogger (toS http)              (setLevel INFO)
+  updateGlobalLogger (toS consensus)         (setLevel INFO)
+  updateGlobalLogger (toS consensusFollower) (setLevel INFO)
+  updateGlobalLogger (toS consensusLeader)   (setLevel INFO)

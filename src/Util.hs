@@ -1,9 +1,11 @@
+{-# LANGUAGE NoImplicitPrelude #-}
+{-# LANGUAGE OverloadedStrings #-}
+
 module Util where
 
-import           Data.ByteString        as BS (ByteString)
 import           Data.ByteString.Base64 as BS64 (decode, encode)
-import           Data.Text              as T
-import           Data.Text.Encoding     (decodeUtf8, encodeUtf8)
+import           Prelude                (fail)
+import           Protolude
 
 encodeToText64   :: ByteString -> Text
 encodeToText64    = decodeUtf8 . BS64.encode

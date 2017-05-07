@@ -2,6 +2,7 @@
 {-# LANGUAGE InstanceSigs          #-}
 {-# LANGUAGE MultiParamTypeClasses #-}
 {-# LANGUAGE MultiWayIf            #-}
+{-# LANGUAGE NoImplicitPrelude     #-}
 {-# LANGUAGE OverloadedStrings     #-}
 {-# LANGUAGE TypeSynonymInstances  #-}
 
@@ -31,15 +32,14 @@ where
 import           Ledger
 import           Util
 
-import           Control.Applicative   ((<|>))
-import           Crypto.Hash.SHA256    (hash)
-import           Data.Aeson
-import           Data.Aeson.Types      (typeMismatch)
-import           Data.ByteString       as BS (concat)
-import           Data.ByteString.Char8 as BSC8 (pack)
-import           Data.Maybe            (fromMaybe)
-import           Data.Sequence         as S (Seq, drop, index, length,
-                                             singleton, (<|))
+import           Crypto.Hash.SHA256 (hash)
+import           Data.Aeson         (FromJSON, ToJSON, Value (Object), object,
+                                     parseJSON, toJSON, (.:), (.=))
+import           Data.Aeson.Types   (typeMismatch)
+import           Data.ByteString    as BS (concat)
+import           Data.Sequence      as S
+import           Prelude            (head, length, (!!))
+import           Protolude
 
 ------------------------------------------------------------------------------
 
@@ -64,20 +64,20 @@ instance Ledger (Seq LedgerEntryImpl) where
       Just i' -> -- Just (S.singleton (S.index ledger i'))
         case getEntry ledger i' of
           Nothing -> Nothing
-          Just e  -> Just (S.singleton e)
+          Just e  -> Just (singleton e)
   genNextEntry ledger ts d =
     let (LedgerEntryImpl i _ _ _ h) = generateNextLedgerEntry ledger ts d
     in (i, h)
-  isValidEntryData l i t d h = isValidEntry' l i t d h
+  isValidEntryData         = isValidEntry' {- l i t d h -}
 
 instance LedgerEntry LedgerEntryImpl (Seq LedgerEntryImpl) where
-  getEntry ledger i   = if i < S.length ledger then Just (S.index ledger i) else Nothing
-  isValidEntry ledger = isValidLedgerEntry (S.index ledger 0)
+  getEntry ledger i   = if i < S.length ledger then Just (index ledger i) else Nothing
+  isValidEntry ledger = isValidLedgerEntry (index ledger 0)
 
 ------------------------------------------------------------------------------
 
-data LedgerEntry2 =
-  LedgerEntry2 { bindex2 :: ! EIndex } deriving (Eq, Show)
+newtype LedgerEntry2 =
+  LedgerEntry2 { bindex2 :: EIndex } deriving (Eq, Show)
 
 instance Ledger [LedgerEntry2] where
   listEntries ledger i =
@@ -94,12 +94,12 @@ instance LedgerEntry LedgerEntry2 [LedgerEntry2] where
                         then Just (ledger !! i)
                         else Nothing
   isValidEntry ledger ledgerEntry =
-    if bindex2 (head ledger) == bindex2 ledgerEntry then Nothing else Just "no"
+    if bindex2 (Prelude.head ledger) == bindex2 ledgerEntry then Nothing else Just "no"
 
 ------------------------------------------------------------------------------
 
 calculateHash :: EIndex -> EHash -> ETimestamp -> EData -> EHash
-calculateHash i p t d = hash (BS.concat [BSC8.pack (show i), p, BSC8.pack (show t), d])
+calculateHash i p t d = hash (BS.concat [show i, p, t, d])
 
 calculateHashForLedgerEntry :: LedgerEntryImpl -> EHash
 calculateHashForLedgerEntry b = calculateHash (eindex b) (epreviousHash b) (etimestamp b) (edata b)
@@ -114,13 +114,13 @@ genesisLedgerEntry =
   in LedgerEntryImpl i ph t d h
 
 genesisLedger :: Seq LedgerEntryImpl
-genesisLedger  = S.singleton genesisLedgerEntry
+genesisLedger  = singleton genesisLedgerEntry
 
 getLastCommittedEntry :: Seq LedgerEntryImpl -> LedgerEntryImpl
 getLastCommittedEntry es = fromMaybe (error "getLastCommittedEntry") (getEntry es 0)
 
 mkLedger :: LedgerEntryImpl -> Seq LedgerEntryImpl
-mkLedger = S.singleton
+mkLedger = singleton
 
 generateNextLedgerEntryInfo :: LedgerImpl -> ETimestamp -> EData -> (EIndex, EHash, ETimestamp, EData, EHash)
 generateNextLedgerEntryInfo ledger tstamp edata0 =
@@ -135,7 +135,7 @@ generateNextLedgerEntry ledger tstamp edata0 =
   in LedgerEntryImpl i ph tstamp edata0 h
 
 -- | Returns Nothing if valid.
-isValidLedgerEntry :: LedgerEntryImpl -> LedgerEntryImpl -> Maybe String
+isValidLedgerEntry :: LedgerEntryImpl -> LedgerEntryImpl -> Maybe Text
 isValidLedgerEntry previousLedgerEntry newLedgerEntry
   | eindex previousLedgerEntry + 1             /= eindex newLedgerEntry        = Just "invalid bindex"
   | ehash previousLedgerEntry                  /= epreviousHash newLedgerEntry = Just "invalid previousHash"
@@ -143,18 +143,18 @@ isValidLedgerEntry previousLedgerEntry newLedgerEntry
   | otherwise                                                                  = Nothing
 
 -- | Returns Nothing if valid.
-isValidLedger :: Seq LedgerEntryImpl -> Maybe String
+isValidLedger :: Seq LedgerEntryImpl -> Maybe Text
 isValidLedger l
-  | S.length l >= 2 = isValidLedgerEntry (S.index l 1) (S.index l 0) <|> isValidLedger (S.drop 1 l)
+  | S.length l >= 2 = isValidLedgerEntry (index l 1) (index l 0) <|> isValidLedger (S.drop 1 l)
   | S.length l == 1 = Nothing
   | otherwise       = Just "empty ledger"
 
 addLedgerEntry :: LedgerEntryImpl -> Seq LedgerEntryImpl -> Seq LedgerEntryImpl
 addLedgerEntry = (<|)
 
-isValidEntry' :: LedgerImpl -> EIndex -> ETimestamp -> EData -> EHash -> Maybe String
+isValidEntry' :: LedgerImpl -> EIndex -> ETimestamp -> EData -> EHash -> Maybe Text
 isValidEntry' l ei et ed eh =
-  let prevE = S.index l (ei - 1)
+  let prevE = index l (ei - 1)
       nle = LedgerEntryImpl ei (ehash prevE) et ed eh
   in isValidEntry l nle
 

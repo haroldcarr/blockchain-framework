@@ -2,9 +2,9 @@
 
 #+begin_example
 ./start.sh
-curl -s http://127.0.0.1:9160/blocks/0 | jq -M .
-curl -s http://127.0.0.1:9160/addBlock/FAKE_BLOCK_DATA | jq -M .
-curl -s http://127.0.0.1:9160/blocks/1 | jq -M .
+curl -s http://127.0.0.1:9160/entries/0 | jq -M .
+curl -s http://127.0.0.1:9160/addEntry/FAKE_BLOCK_DATA | jq -M .
+curl -s http://127.0.0.1:9160/entries/1 | jq -M .
 kill ...
 #+end_example
 

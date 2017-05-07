@@ -1,6 +1,8 @@
 {-# LANGUAGE DeriveGeneric     #-}
 {-# LANGUAGE MultiWayIf        #-}
+{-# LANGUAGE NoImplicitPrelude #-}
 {-# LANGUAGE OverloadedStrings #-}
+{-# LANGUAGE Strict            #-}
 
 module ConsensusImpl
   ( AppendEntry (..)
@@ -24,14 +26,13 @@ import           Data.Aeson           (FromJSON, ToJSON, Value (Object),
                                        toJSON, (.:), (.=))
 import           Data.Aeson.Types     (typeMismatch)
 import           Data.ByteString      as BS
-import           Data.ByteString.Lazy (toStrict)
-import           Data.Monoid          ((<>))
-import           GHC.Generics
-import           Network.Socket       as N (HostName, PortNumber)
+import           Data.ByteString.Lazy as BSL (toStrict)
+import           Network.Socket       (HostName, PortNumber)
+import           Protolude
 import           System.Log.Logger    (infoM)
 
 data AppendEntry =
-  AppendEntry { aetype      :: ! String
+  AppendEntry { aetype      :: ! Text
               , aeindex     :: ! EIndex
               , aetimestamp :: ! ETimestamp
               , aedata      :: ! EData
@@ -73,7 +74,7 @@ addEntry ledger sendToConsensusNodes0 edata0 = do
   let ts     = "fake timestamp"
       (i, h) = genNextEntry ledger ts  edata0
   -- send entry to verifiers
-  sendToConsensusNodes0 (toStrict (encode (AppendEntry "AER" i ts edata0 h)))
+  sendToConsensusNodes0 (BSL.toStrict (encode (AppendEntry "AER" i ts edata0 h)))
   return (i, ts, h)
 
 ------------------------------------------------------------------------------
@@ -87,7 +88,7 @@ type RecFromConsensusNodes2       = HostName
                                  -> SendToConsensusNodes
                                  -> ByteString
                                  -> IO ()
-type IsValid                      = EIndex -> ETimestamp -> EData -> EHash -> IO (Maybe String)
+type IsValid                      = EIndex -> ETimestamp -> EData -> EHash -> IO (Maybe Text)
 
 -- | This structure is just to conceptually group communicaiton functions.
 -- It is not stricly necessary.
@@ -100,26 +101,26 @@ data ConsensusCommunicationWiring =
 
 -- recFromConsensusNodes :: RecFromConsensusNodes
 recFromConsensusNodes' :: RecFromConsensusNodes
-recFromConsensusNodes' isValid host port sendToConsensusNodes' msg =
-  if | BS.isInfixOf "\"aetype\":\"AER\"" msg -> do
+recFromConsensusNodes' isValid host port sendToConsensusNodes' msg0 =
+  if | BS.isInfixOf "\"aetype\":\"AER\"" msg0 -> do
          infoC host port "APPENDENTRY"
-         case decodeStrict msg of
-           Nothing ->     sendToConsensusNodes' (toStrict (encode (AppendEntryResponse False Nothing)))
+         case decodeStrict msg0 of
+           Nothing ->     sendToConsensusNodes' (BSL.toStrict (encode (AppendEntryResponse False Nothing)))
            Just (AppendEntry _ aei aets aed aeh) -> do
              v <- isValid aei aets aed aeh
              case v of
-               Nothing -> sendToConsensusNodes' (toStrict (encode (AppendEntryResponse True  (Just aei))))
-               _       -> sendToConsensusNodes' (toStrict (encode (AppendEntryResponse False (Just aei))))
-     | BS.isInfixOf "\"aeresponse\":" msg -> do
+               Nothing -> sendToConsensusNodes' (BSL.toStrict (encode (AppendEntryResponse True  (Just aei))))
+               _       -> sendToConsensusNodes' (BSL.toStrict (encode (AppendEntryResponse False (Just aei))))
+     | BS.isInfixOf "\"aeresponse\":" msg0 -> do
          infoC host port "APPENDENTRYRESPONSE"
-         case decodeStrict msg of
+         case decodeStrict msg0 of
            Just aer@(AppendEntryResponse _ _) -> infoC host port (show aer)
            Nothing                            -> infoC host port "AER NOT OK"
-     | otherwise -> infoC host port ("handleMessage: unknown message: " ++ show msg)
+     | otherwise -> infoC host port ("handleMessage: unknown message: " <> show msg0)
 
 ------------------------------------------------------------------------------
 
-infoC :: HostName -> PortNumber -> String -> IO ()
-infoC h p msg =
-  infoM consensus ("C " <> h <> ":" <> show p <> " " <> msg)
+infoC :: HostName -> PortNumber -> Text -> IO ()
+infoC h p msg0 =
+  infoM (toS consensus) (toS ("C " <> toS h <> ":" <> show p <> " " <> msg0))
 

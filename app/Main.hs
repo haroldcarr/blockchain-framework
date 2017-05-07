@@ -1,3 +1,4 @@
+{-# LANGUAGE NoImplicitPrelude   #-}
 {-# LANGUAGE OverloadedStrings   #-}
 {-# LANGUAGE ScopedTypeVariables #-}
 
@@ -14,11 +15,10 @@ import           Logging            (configureLogging)
 import           SystemWiring       as SW
 import           TransportUDP       (startNodeComm)
 
-import           Control.Concurrent (MVar, newEmptyMVar, newMVar, putMVar,
-                                     takeMVar, withMVar)
 import           Data.Aeson         (ToJSON)
 import           Network.Socket     (HostName, PortNumber)
-import           System.Environment (getArgs)
+import qualified Prelude            as PL (read)
+import           Protolude
 
 defaultHost :: HostName
 defaultHost  = "224.0.0.99"
@@ -29,8 +29,8 @@ main :: IO ()
 main = do
   xs <- getArgs
   case xs of
-    []             -> doIt defaultPort                   defaultHost (read (show defaultPort) :: PortNumber)
-    [httpPort,h,p] -> doIt (read httpPort :: PortNumber) h           (read p                  :: PortNumber)
+    []             -> doIt defaultPort                      defaultHost (defaultPort :: PortNumber)
+    [httpPort,h,p] -> doIt (PL.read httpPort :: PortNumber) h           (PL.read p   :: PortNumber)
     xss            -> error (show xss)
 
 doIt :: PortNumber -> HostName -> PortNumber -> IO ()
@@ -46,7 +46,7 @@ initializeWiring = do
   ledgerState <- newMVar genesisLedger
   commMV <- newEmptyMVar
   let iv   = Main.isValid ledgerState
-      send = (putMVar commMV)
+      send = putMVar commMV
   return ( SystemWiring
              (Main.listEntries ledgerState)
              (Main.addEntry ledgerState send)
@@ -59,11 +59,11 @@ initializeWiring = do
 listEntries :: (ToJSON l, Ledger l) => MVar l -> Maybe Int -> IO (Maybe l)
 listEntries ledger i = withMVar ledger $ \l -> return (Ledger.listEntries l i)
 
-addEntry :: Ledger l => MVar l -> SendToConsensusNodes -> EData -> IO (String, String, String)
+addEntry :: Ledger l => MVar l -> SendToConsensusNodes -> EData -> IO (Text, Text, Text)
 addEntry l s d =
   withMVar l $ \l' -> do
   (i, ts, h) :: (EIndex, ETimestamp, EHash) <- CI.addEntry l' s d
   return (show i, show ts, show h)
 
-isValid :: Ledger l => MVar l -> EIndex -> ETimestamp -> EData -> EHash -> IO (Maybe String)
+isValid :: Ledger l => MVar l -> EIndex -> ETimestamp -> EData -> EHash -> IO (Maybe Text)
 isValid l i t d h = withMVar l $ \l' -> return (isValidEntryData l' i t d h)

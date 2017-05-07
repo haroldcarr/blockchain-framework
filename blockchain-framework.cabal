@@ -19,15 +19,13 @@ library
                      , base64-bytestring
                      , bytestring
                      , containers
-                     , cryptohash
+                     , cryptohash                     
                      , hslogger
-                     , lens
-                     , mtl
+                     , protolude
                      , network
-                     , network-multicast
+                     , network-multicast                     
                      , snap-core
                      , snap-server
-                     , text
   default-language:    Haskell2010
   ghc-options:         -Wall -Wno-unused-do-bind
 
@@ -37,12 +35,9 @@ executable bc
   ghc-options:         -Wall -Wno-unused-do-bind -threaded -rtsopts -with-rtsopts=-N
   build-depends:       base
                      , aeson
-                     , bytestring
-                     , hslogger
                      , blockchain-framework
-                     , containers
-                     , lens
                      , network
+                     , protolude
   default-language:    Haskell2010
 
 test-suite blockchain-framework-test
@@ -56,9 +51,10 @@ test-suite blockchain-framework-test
                      , blockchain-framework
                      , containers
                      , hspec
+                     , protolude
   ghc-options:         -Wall -Wno-unused-do-bind -threaded -rtsopts -with-rtsopts=-N
   default-language:    Haskell2010
 
 source-repository head
   type:     git
-  location: https://github.com/githubuser/blockchain-framework
+  location: https://github.com/haroldcarr/blockchain-framework

@@ -1,3 +1,4 @@
+{-# LANGUAGE NoImplicitPrelude #-}
 {-# LANGUAGE OverloadedStrings #-}
 
 module TransportUDP
@@ -9,13 +10,12 @@ import           ConsensusImpl             (GetMsgToSendToConsensusNodes,
                                             SendToConsensusNodes)
 import           Logging                   (consensusFollower)
 
-import           Control.Concurrent        (forkIO)
-import           Data.Monoid               ((<>))
 import           Network.Multicast         as NM (multicastReceiver,
                                                   multicastSender)
 import           Network.Socket            as N (HostName, PortNumber, SockAddr,
                                                  Socket)
 import           Network.Socket.ByteString as N (recvFrom, sendTo)
+import           Protolude
 import           System.Log.Logger         (infoM)
 
 startNodeComm :: HostName -> PortNumber
@@ -37,9 +37,9 @@ rec :: HostName -> PortNumber -> Socket -> Socket -> SockAddr
     -> IO b
 rec host port recSock sendSock sendAddr recFromConsensusNodes sendToConsensusNodes = do
   infoN host port "rec: waiting"
-  (msg,addr) <- N.recvFrom recSock 1024
-  infoN host port  ("rec: from: " <> show addr <> " " <> show msg)
-  recFromConsensusNodes host port sendToConsensusNodes msg
+  (msg0,addr) <- N.recvFrom recSock 1024
+  infoN host port  ("rec: from: " <> show addr <> " " <> show msg0)
+  recFromConsensusNodes host port sendToConsensusNodes msg0
   rec host port recSock sendSock sendAddr recFromConsensusNodes sendToConsensusNodes
 
 send :: HostName -> PortNumber -> Socket -> SockAddr
@@ -47,13 +47,13 @@ send :: HostName -> PortNumber -> Socket -> SockAddr
      -> IO ()
 send host port sock addr getMsgToSendToConsensusNodes = do
   infoN host port "send: waiting"
-  msg <- getMsgToSendToConsensusNodes
-  infoN host port ("send: " ++ show msg)
-  sendTo sock msg addr
+  msg0 <- getMsgToSendToConsensusNodes
+  infoN host port ("send: " <> show msg0)
+  sendTo sock msg0 addr
   send host port sock addr getMsgToSendToConsensusNodes
 
-infoN :: HostName -> PortNumber -> String -> IO Int
-infoN h p msg = do
-  infoM consensusFollower ("T " <> h <> ":" <> show p <> " " <> msg)
+infoN :: HostName -> PortNumber -> Text -> IO Int
+infoN h p msg0 = do
+  infoM (toS consensusFollower) (toS ("T " <> toS h <> ":" <> show p <> " " <> msg0))
   return 1 -- to match sendTo
 

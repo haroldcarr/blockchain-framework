@@ -1,3 +1,4 @@
+{-# LANGUAGE NoImplicitPrelude #-}
 {-# LANGUAGE OverloadedStrings #-}
 
 module LedgerImplSpec (spec) where
@@ -5,9 +6,9 @@ module LedgerImplSpec (spec) where
 import           LedgerImpl
 
 import           Data.Aeson    (decode, encode)
-import           Data.Sequence as S (empty)
+import           Data.Sequence as S
+import           Protolude
 import           Test.Hspec
-
 
 spec :: Spec
 spec = do
@@ -25,7 +26,7 @@ spec = do
           it "getEntry' 0" $ getEntry nl 0                            `shouldBe` Just ne
           it "getEntry' 1" $ getEntry nl 1                            `shouldBe` Just genesisLedgerEntry
           it "validEntryTC"$ isValidEntry genesisLedger ne            `shouldBe` Nothing
-          it "validXXtryTC"$ isValidEntry nl            ne            `shouldBe` (Just "invalid bindex")
+          it "validXXtryTC"$ isValidEntry nl            ne            `shouldBe` Just "invalid bindex"
   -------------------------
   describe "aeson" $
     it "decode . encode" $

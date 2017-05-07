@@ -1,7 +1,7 @@
-{-# LANGUAGE OverloadedStrings #-}
-
+{-# LANGUAGE NoImplicitPrelude #-}
 module CommunicationSpec (spec) where
 
+import           Protolude
 import           Test.Hspec
 
 spec :: Spec

@@ -1,3 +1,4 @@
+{-# LANGUAGE NoImplicitPrelude #-}
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE RankNTypes        #-}
 
@@ -6,10 +7,11 @@ module SystemWiring where
 import           Ledger     (EData, Ledger)
 
 import           Data.Aeson (ToJSON)
+import           Protolude
 
 type ListEntries ledger = (Ledger ledger, ToJSON ledger)
                        => Maybe Int -> IO (Maybe ledger)
-type AddEntry           = EData     -> IO (String, String, String)
+type AddEntry           = EData     -> IO (Text, Text, Text)
 
 data SystemWiring ledger =
   SystemWiring
