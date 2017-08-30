@@ -7,6 +7,7 @@ import           Data.ByteString.Base64 as BS64 (decode, encode)
 import           Prelude                (fail)
 import           Protolude
 
+-- TODO: use decodeUtf8’ :: ByteString -> Either UnicodeException Text
 encodeToText64   :: ByteString -> Text
 encodeToText64    = decodeUtf8 . BS64.encode
 
