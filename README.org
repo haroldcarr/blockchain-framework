@@ -1,5 +1,9 @@
 # Initially from https://medium.com/@lhartikk/a-blockchain-in-200-lines-of-code-963cc1cc0e54#.ufqde5iq6
 
+This is an abandoned weekend project.  It attempted to define interface (via typeclasses) for the main parts of a blockchain implementation.  It started to have an implementation that used UDP for P2P communication.  It did not have a real consensus algorithm.
+
+To see a complete working implementation along these lines (minus the typeclasses) see [[http://www.stephendiehl.com/][Stephen Diehl]]'s [[https://github.com/adjoint-io/nanochain][nanochain]].
+
 #+begin_example
 ./start.sh
 curl -s http://127.0.0.1:9160/entries/0 | jq -M .
